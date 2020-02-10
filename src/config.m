@@ -59,7 +59,7 @@ function para = config(varargin)
         paths = {'../data/rccar',...
                  '../data/rotation',...
                  '../data/walk'};
-        id = 1;
+        id = 2;
         td = [5.2, 2.8, 3.39];% GT = [5.208, 2.838, 3.3858]; init around GT with some errors.
 
         para.td = td(id);%;%2.83;%1.175; % timestamp delay	
