@@ -1,4 +1,27 @@
 function [X, P] = iekf_update_analytical (X, inde, P, H_k, VRV_k, z_k, py)
+%FUNCTION_NAME - iekf update.
+%
+% Syntax:  [X, P] = iekf_update_analytical (X, inde, P, H_k, VRV_k, z_k, py)
+%
+% Inputs:
+%    X - states
+%    inde - index
+%    P - covariance
+%    H_k - measurement Jacobian matrix.
+%    VRV_k - measurement Cov matrix (implicit EKF).
+%    z_k - real measurement.
+%    py - predicted measurement.
+%
+% Outputs:
+%    X - states
+%    P - covariance
+%
+% Author: Xiao Hu
+% Technical University of Denmark
+% email: xiahaa@space.dtu.dk
+% Jan 2020; Last revision: 31-Jan-2020
+%------------- BEGIN CODE --------------
+
     % EKF filtering update step
     S = H_k*P*H_k'+VRV_k;
     K = P*H_k'/(S); % ekf gain matrix

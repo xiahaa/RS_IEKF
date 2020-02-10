@@ -1,10 +1,34 @@
-function [mean_est, var_est, npara] = InEKF_rs_calib_rep(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx)
-%% this scipt runs InEKF for rolling shutter camera calibration.
-
-    %% code section
+function [mean_est, var_est, npara] = InEKF_rs_calib_rep(match_idx, match_x1, match_x2, ...
+    gyrostamp, gyrogap, anglev, framestamp, para, endidx)
+%FUNCTION_NAME - runs InEKF for rolling shutter camera calibration.
+%
+% Syntax:  inde = update_inde(inde, x_k_k, p_k_k)
+%
+% Inputs:
+%    match_idx - feature matching index.
+%    match_x1 - feature matching position of frame i-1.
+%    match_x2 - feature matching position of frame i.
+%    gyrostamp - IMU timestamp.
+%    gyrogap - gap time of two IMU samples.
+%    anglev - angular velocity.
+%    framestamp - img frame timestamp.
+%    para - auxiliary parameter.
+%    endidx - ending index.
+%
+% Outputs:
+%    mean_est - logged mean values.
+%    var_est - logged variance.
+%    npara - final calibration parameters.
+%
+%
+% Author: Xiao Hu
+% Technical University of Denmark
+% email: xiahaa@space.dtu.dk
+% Jan 2020; Last revision: 31-Jan-2020
+%------------- BEGIN CODE --------------
     h = para.h;
     w = para.w;
-    gyro_sigma = para.sigma;% 1e-6, so it actually means this gyroscope measurements are fairly accurate
+    gyro_sigma = para.sigma;% 
     pn = para.pn;% feature point noise
     std_ts = 0.01;
     std_td = 0.1;

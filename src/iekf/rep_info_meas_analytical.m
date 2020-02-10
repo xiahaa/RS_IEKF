@@ -1,4 +1,31 @@
 function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ftb, fz, fy, h, puv,param)
+%FUNCTION_NAME - analytical solution for measurement update.
+%
+% Syntax:  [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ftb, fz, fy, h, puv,param)
+%
+% Inputs:
+%    X - states
+%    inde - index
+%    localstamp - imu timestamp
+%    fta - timstamp of u
+%    ftb - timestamp of u'
+%    fz - u'
+%    fy - u
+%    h - img height
+%    puv - cov of feature
+%    param - auxiliary parameters.
+%
+% Outputs:
+%    yhat - predicted measurement.
+%    H - measurement Jacobian matrix.
+%    JRJt - measurement Cov matrix (implicit EKF).
+%
+%
+% Author: Xiao Hu
+% Technical University of Denmark
+% email: xiahaa@space.dtu.dk
+% Jan 2020; Last revision: 31-Jan-2020
+%------------- BEGIN CODE --------------
     x_nongroup = X(inde.nongroup);
     % split current states
 	if isfield(inde,'cxy')
@@ -72,12 +99,6 @@ function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ft
         JRJt(i,i) = (cons1*jac_a1_uv)*(cons1*jac_a1_uv)' + (cons2*jac_b1_uv)*(cons2*jac_b1_uv)';
         JRJt(i,i) = JRJt(i,i).*puv;
     end
-    %% left null basis
-%     [U,~,~] = svd(Hf);
-%     AA = U(:,size(Hf,2)+1:end);
-%     H = AA'*H;
-%     JRJt = puv*eye(size(H,1));
-%     yhat = AA'*yhat;
 end
 
 function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localstamp, ta, tb, ind_1, h, param, Kinv)
