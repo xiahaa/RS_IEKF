@@ -1,24 +1,27 @@
 function [mean_est, var_est, npara] = ekf_epipolar_analytic(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx)
+% This is the re-implementation of the EKF filter proposed in 
+% Jia, Chao, and Brian L. Evans. 
+% "Online camera-gyroscope autocalibration for cell phones." 
+% IEEE Transactions on Image Processing 23.12 (2014): 5070-5081.
+%
+% The major reason for reimplement this method is that the original
+% implementation is not available. 
+% I reimplement this by carefully check the method proposed in the paper.
+% However, due to the limitation of my knowledge, there is no guarantee
+% that my implementation does exactly the same as the proposed method.
+% 
+% Compare with the paper, there is an explicit change I made: I use the
+% SO(3) rather than the unit-quaternion as the state for Ric. The reason
+% for using SO(3) is that we do not need any reparameterization.
 
     addpath opt
 
-    %% Help infomation:
-    % new: modified by xiao hu
-    % changes: 
-    %   new state -> new prediction and update.
-    %   use analytical jacobian.
-    % old: 
-    % extended Kalman filtering to calibrate camera & gyro
-    % measurement model is based on coplanar epipolar constraint (implicit ekf)
-    % estimate true angular velocities & camera & gyro parameters
-    % the mean & variance estimate at each stage are saved in "mean_est" and "var_est"
-
-    %% code section
-    h = para.h;
-    w = para.w;
-    gyro_sigma = para.sigma;% 1e-6, so it actually means this gyroscope measurements are fairly accurate
+    h = para.h;% img height
+    w = para.w;% img width
+    gyro_sigma = para.sigma;%
     pn = para.pn;% feature point noise
     maxtd = 0.03; % maximum range of parameter td is (+-) 0.03 s
+    
     % initial variance of different parameters
     oc_sigma = 6.67^2;
     ts_sigma = 0.00167^2;
@@ -64,7 +67,8 @@ function [mean_est, var_est, npara] = ekf_epipolar_analytic(match_idx, match_x1,
     if z_k ~= Inf
         % function epip_gen_hid generates random indices for epip constaints by
         % random perm 1:fnum and then reshape it as a Mx3 matrix.
-%         hid = epip_gen_hid (fnum);% GlobalSip
+        % hid = epip_gen_hid (fnum);% find hid randomly as proposed in
+        % GlobalSip.
         hid = epip_gen_hid_analytical (y_k);% TIP
 
         [mm, H_k, VRV_k] = epip_info_meas_analytical (x_k_km1, hid, gyrostamp(idxg), gyrogap(idxg), ...
@@ -95,7 +99,7 @@ function [mean_est, var_est, npara] = ekf_epipolar_analytic(match_idx, match_x1,
         [x_k_km1, p_k_km1] = ekf_predict_epip_analytical (x_k_k, p_k_k);
         % EKF update
         if z_k ~= Inf
-%             hid = epip_gen_hid (fnum);% GlobalSip
+            % hid = epip_gen_hid (fnum);% GlobalSip
             hid = epip_gen_hid_analytical (y_k);% TIP
                     
             [mm, H_k, VRV_k] = epip_info_meas_analytical (x_k_km1, hid, gyrostamp(idxg), gyrogap(idxg), ...
@@ -140,6 +144,9 @@ end
 function hid = epip_gen_hid_analytical (y_k)
     % generate groups of features (3 in each group) for the coplanar
     % constraint according to the principle described in the TIP paper.
+    % Jia, Chao, and Brian L. Evans. 
+    % "Online camera-gyroscope autocalibration for cell phones." 
+    % IEEE Transactions on Image Processing 23.12 (2014): 5070-5081.
     y_k = reshape(y_k, 2, length(y_k)/2);
     [~,inds] = sort(y_k(2,:));
     fnum = floor(size(y_k,2)/3)*3;
