@@ -19,6 +19,8 @@ To run with the `main.m`, you need to download the [dataset](http://users.ece.ut
 1. open `main.m` and run.
 2. you can config the filter type in the config.m.
 
+## More results
+
 ## Note
 if you use the mentioned dataset, please cite the original work
 > Jia, C., & Evans, B. L. (2013, December). Online calibration and synchronization of cellphone camera and gyroscope. In 2013 IEEE Global Conference on Signal and Information Processing (pp. 731-734). IEEE.
