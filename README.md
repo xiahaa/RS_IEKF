@@ -1,7 +1,7 @@
 # RS_IEKF
 Parameter estimation using IEKF for RS camera. The following figure shows the illustration.
 
-![fig](https://github.com/xiahaa/RS_IEKF/blob/master/figs/filter.png)
+![fig](https://github.com/xiahaa/RS_IEKF/blob/master/figs/filter2.png)
 
 ## Src
 In `src` folder, you will find all source code.
