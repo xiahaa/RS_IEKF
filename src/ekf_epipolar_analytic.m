@@ -6,7 +6,7 @@ function [mean_est, var_est, npara] = ekf_epipolar_analytic(match_idx, match_x1,
 %
 % The major reason for reimplement this method is that the original
 % implementation is not available. 
-% I reimplement this by carefully check the method proposed in the paper.
+% I reimplement this by carefully checking the method proposed in the paper.
 % However, due to the limitation of my knowledge, there is no guarantee
 % that my implementation does exactly the same as the proposed method.
 % 
