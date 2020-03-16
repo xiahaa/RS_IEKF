@@ -31,6 +31,27 @@ function inde = update_inde(inde, x_k_k, p_k_k)
 	    inde.cov_cxy = inde.cov_nongroup(1:2);inde.cov_f = inde.cov_nongroup(5);
 	    inde.cov_ts = inde.cov_nongroup(3);inde.cov_td = inde.cov_nongroup(4);
 	    inde.cov_wd = inde.cov_nongroup(6:8);inde.cov_rcam = inde.cov_nongroup(9:11);
+    elseif length(x_k_k) > 17
+        % free cx, cy, f + distorsion
+    	inde.cxy = inde.nongroup(1:2);inde.f = inde.nongroup(5);
+	    inde.ts = inde.nongroup(3);inde.td = inde.nongroup(4);
+	    inde.wd = inde.nongroup(6:8);inde.rcam = inde.nongroup(9:17);
+        
+        inde.cov_nongroup = (inde.cov_group(end)+1):(inde.cov_group(end)+size(p_k_k,1));
+	    inde.cov_cxy = inde.cov_nongroup(1:2);inde.cov_f = inde.cov_nongroup(5);
+	    inde.cov_ts = inde.cov_nongroup(3);inde.cov_td = inde.cov_nongroup(4);
+	    inde.cov_wd = inde.cov_nongroup(6:8);inde.cov_rcam = inde.cov_nongroup(9:11);
+        
+        inde.k1 = inde.nongroup(18);inde.cov_k1 = inde.cov_nongroup(12);
+        if length(x_k_k) > 18
+            inde.k2 = inde.nongroup(19);inde.cov_k2 = inde.cov_nongroup(13);
+        end
+        if length(x_k_k) > 19
+            inde.k3 = inde.nongroup(20);inde.cov_k3 = inde.cov_nongroup(14);
+        end
+        if length(x_k_k) > 20
+            warning('Do not support!!')
+        end
     else
         % fix cx, cy, f
 		inde.ts = inde.nongroup(1);inde.td = inde.nongroup(2);

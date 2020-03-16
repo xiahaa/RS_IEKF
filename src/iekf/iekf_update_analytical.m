@@ -38,7 +38,18 @@ function [X, P] = iekf_update_analytical (X, inde, P, H_k, VRV_k, z_k, py)
     	X([inde.cxy, inde.f, inde.ts, inde.td, inde.wd]) = X([inde.cxy, inde.f, inde.ts, inde.td, inde.wd]) + innovation([inde.cov_cxy, inde.cov_f, inde.cov_ts, inde.cov_td, inde.cov_wd])';
 	else
 		X([inde.ts, inde.td, inde.wd]) = X([inde.ts, inde.td, inde.wd]) + innovation([inde.cov_ts, inde.cov_td, inde.cov_wd])';
-	end
+    end
+    
+    if isfield(inde, 'k1')
+        X([inde.k1]) = X([inde.k1]) + innovation([inde.cov_k1])';
+    end
+    if isfield(inde, 'k2')
+        X([inde.k2]) = X([inde.k2]) + innovation([inde.cov_k2])';
+    end
+    if isfield(inde, 'k3')
+        X([inde.k3]) = X([inde.k3]) + innovation([inde.cov_k3])';
+    end
+    
     R = reshape(X(inde.rcam),3,3);
     R = expSO3(innovation(inde.cov_rcam)) * R;
     X(inde.rcam) = (R(:))';
