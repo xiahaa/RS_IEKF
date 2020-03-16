@@ -3,6 +3,9 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     avg_freq = 1/mean(diff(framestamp));
     est_ts = 1/avg_freq;
     para.ts = est_ts * 3/2;
+    para.cx = para.cx * 3/2;
+    para.cy = para.cy * 3/2;
+    para.f = para.f * 3/2;
 
     %% code section
     h = para.h;
@@ -15,10 +18,10 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     maxtd = std_td*3; % maximum range of parameter td is (+-) 0.03 s
     maxts = std_ts*3;
     % initial variance of different parameters
-    oc_sigma = 10^2;
+    oc_sigma = 0.5^2;
     ts_sigma = std_ts^2;
     td_sigma = std_td^2;
-    f_sigma = 20^2;
+    f_sigma = 0.5^2;
     bias_sigma = 0.0067^2;
     rcam_sigma = 0.0067^2;
     
@@ -28,7 +31,7 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     
     % initilize the EKF
     rcam = expSO3(para.rcam);
-    x_k_k = [para.cx; para.cy; 0; para.td; para.f; para.wd'; rcam(:)];
+    x_k_k = [0; 0; 0; para.td; 0; para.wd'; rcam(:)];
     p_k_k = eye(11); 
     p_k_k(1,1) = oc_sigma; p_k_k(2,2) = oc_sigma; 
     p_k_k(3,3) = 1; p_k_k(4,4) = td_sigma; 
@@ -163,12 +166,21 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
                 inde = update_inde(inde, x_k_k, p_k_k);
                 
                 % log
+                ccx = -(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
+                ccy = -(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
+                ccf = -(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
                 ccc = -(para.ts*exp(X(inde.ts)))/((2*exp(X(inde.ts)) + 1)^2);
 
                 var_est(upid,:) = [diag(P(inde.cov_nongroup,inde.cov_nongroup))'];
+                var_est(upid,1) = ccx * var_est(upid,1) * ccx';
+                var_est(upid,2) = ccy * var_est(upid,2) * ccy';
+                var_est(upid,5) = ccf * var_est(upid,5) * ccf';
                 var_est(upid,3) = ccc * var_est(upid,3) * ccc';
                 
                 x_k_display = [X([inde.nongroup(1):inde.rcam(1)-1]), logSO3(reshape(X(inde.rcam),3,3))', X([inde.rcam(end)+1:inde.nongroup(end)])];
+                x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
+                x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
+                x_k_display(5) = para.f * ft(X(inde.f));
                 x_k_display(3) = para.ts * ft(X(inde.ts));
                 mean_est(upid,:) = x_k_display;
                 fprintf('idx = %d, ts = %f, td = %f, ocw = %f, och = %f, f = %f bias = %f %f %f rcamx = %f %f %f \n',epipolar_num(1), ...
@@ -184,6 +196,9 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
         runtime(ind) = toc;
     end
     x_k_display = [X([inde.nongroup(1):inde.rcam(1)-1]), logSO3(reshape(X(inde.rcam),3,3))', X([inde.rcam(end)+1:inde.nongroup(end)])];
+    x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
+    x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
+    x_k_display(5) = para.f * ft(X(inde.f));
     x_k_display(3) = para.ts * ft(X(inde.ts));
     npara.ts = x_k_display(3);
     npara.td = x_k_display(4);
@@ -213,11 +228,11 @@ function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ft
     x_nongroup = X(inde.nongroup);
     % split current states
 	if isfield(inde,'cxy')
-	    ocx = x_nongroup(1);
-	    ocy = x_nongroup(2);
+	    ocx = para.cx * ft(x_nongroup(1));
+	    ocy = para.cy * ft(x_nongroup(2));
         tr = para.ts * ft(x_nongroup(3));
 	    td = x_nongroup(4);
-	    f = x_nongroup(5);
+	    f = para.f * ft(x_nongroup(5));
     else
         tr = para.ts * ft(x_nongroup(1));
     	td = x_nongroup(2);
@@ -349,9 +364,9 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     %% jacobian
     jac_a_x = zeros(3,inde.cov_nongroup(end));
 	if isfield(inde, 'cxy')
-        ccx = 1;
-        ccy = 1;
-        ccf = 1;
+        ccx = -(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
+        ccy = -(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
+        ccf = -(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
         
     	tmp2 = Ry*jac_f5(dfy1(:,ind_1));
         
@@ -414,9 +429,9 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     
     jac_b_x = zeros(3,inde.cov_nongroup(end));
 	if isfield(inde, 'cxy')
-        ccx = 1;
-        ccy = 1;
-        ccf = 1;
+        ccx = -(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
+        ccy = -(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
+        ccf = -(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
 	    tmp2 = Rz*jac_f5(dfz1(:,ind_1));
         
         jac_cx = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)^2/fz1(3,ind_1)-distcorr2(ind_1); ...
