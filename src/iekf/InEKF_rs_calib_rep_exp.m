@@ -157,21 +157,12 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
                 inde = update_inde(inde, x_k_k, p_k_k);
                 
                 % log
-%                 ccx = -(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
-%                 ccy = -(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
-%                 ccf = -(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
                 ccc = -(para.ts*exp(X(inde.ts)))/((2*exp(X(inde.ts)) + 1)^2);
 
                 var_est(upid,:) = [diag(P(inde.cov_nongroup,inde.cov_nongroup))'];
-%                 var_est(upid,1) = ccx * var_est(upid,1) * ccx';
-%                 var_est(upid,2) = ccy * var_est(upid,2) * ccy';
-%                 var_est(upid,5) = ccf * var_est(upid,5) * ccf';
                 var_est(upid,3) = ccc * var_est(upid,3) * ccc';
                 
                 x_k_display = [X(inde.nongroup(1:end-9)), logSO3(reshape(X(inde.nongroup(end-8:end)),3,3))'];
-%                 x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
-%                 x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
-%                 x_k_display(5) = para.f * ft(X(inde.f));
                 x_k_display(3) = para.ts * ft(X(inde.ts));
                 mean_est(upid,:) = x_k_display;
                 fprintf('idx = %d, ts = %f, td = %f, ocw = %f, och = %f, f = %f bias = %f %f %f rcamx = %f %f %f \n',epipolar_num(1), ...
@@ -187,9 +178,6 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
         runtime(ind) = toc;
     end
     x_k_display = [X(inde.nongroup(1:end-9)), logSO3(reshape(X(inde.nongroup(end-8:end)),3,3))'];
-%     x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
-%     x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
-%     x_k_display(5) = para.f * ft(X(inde.f));
     x_k_display(3) = para.ts * ft(X(inde.ts));
     npara.ts = x_k_display(3);
     npara.td = x_k_display(4);
@@ -211,11 +199,11 @@ function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ft
     x_nongroup = X(inde.nongroup);
     % split current states
 	if isfield(inde,'cxy')
-	    ocx = x_nongroup(1);%para.cx * ft(x_nongroup(1));
-	    ocy = x_nongroup(2);%para.cy * ft(x_nongroup(2));
+	    ocx = x_nongroup(1);
+	    ocy = x_nongroup(2);
         tr = para.ts * ft(x_nongroup(3));
 	    td = x_nongroup(4);
-	    f = x_nongroup(5);%para.f * ft(x_nongroup(5));
+	    f = x_nongroup(5);
     else
         tr = para.ts * ft(x_nongroup(1));
     	td = x_nongroup(2);
@@ -313,9 +301,9 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     %% jacobian
     jac_a_x = zeros(3,inde.cov_nongroup(end));
 	if isfield(inde, 'cxy')
-        ccx = 1;%-(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
-        ccy = 1;%-(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
-        ccf = 1;%-(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
+        ccx = 1;
+        ccy = 1;
+        ccf = 1;
         
     	tmp2 = Ry*jac_f5(fy1(:,ind_1));
     	jac_a_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*ccx*[-1;0;0] tmp2*ccy*[0;-1;0] tmp2*ccf*[0;0;1]];
@@ -344,9 +332,9 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     
     jac_b_x = zeros(3,inde.cov_nongroup(end));
 	if isfield(inde, 'cxy')
-        ccx = 1;%-(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
-        ccy = 1;%-(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
-        ccf = 1;%-(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
+        ccx = 1;
+        ccy = 1;
+        ccf = 1;
 	    tmp2 = Rz*jac_f5(fz1(:,ind_1));
     	jac_b_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*[-1;0;0]*ccx tmp2*[0;-1;0]*ccy tmp2*[0;0;1]]*ccf;
     else
