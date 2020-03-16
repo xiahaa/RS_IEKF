@@ -37,8 +37,8 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     p_k_k(9,9) = rcam_sigma; p_k_k(10,10) = rcam_sigma; p_k_k(11,11) = rcam_sigma; 
     
     if isfield(para, 'dist')
-        x_k_k = [x_k_k; para.dist];
-        dist_sigma = 0.01^2;
+        x_k_k = [x_k_k; para.dist'];
+        dist_sigma = 0.03^2;
         p_k_k = blkdiag(p_k_k,dist_sigma.*eye(length(para.dist)));
     end
     
@@ -142,7 +142,7 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
                     [mm, H_k, VRV_k] = rep_info_meas_analytical (X, inde, ts_seq, framestamp(epipolar_num(1)), framestamp(epipolar_num(2)),...
                         z_k, y_k, h, pn, para);
                     % traditional KF update
-                    [X, P] = ekf_update_analytical (X, inde, P, H_k, VRV_k, zeros(length(mm),1), mm);
+                    [X, P] = iekf_update_analytical (X, inde, P, H_k, VRV_k, zeros(length(mm),1), mm);
                 else
                     % do nothing
                 end
@@ -259,11 +259,11 @@ function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ft
     	fy1 = [reshape(fy, 2, length(fy)/2); f*ones(1, length(fy)/2)]; fy1 = fy1 - [ocx;ocy;0];
     	fz1 = [reshape(fz, 2, length(fz)/2); f*ones(1, length(fz)/2)]; fz1 = fz1 - [ocx;ocy;0];
         
-        r1 = ((fy1(1) / fy1(3))^2 + (fy1(2) / fy1(3))^2);
+        r1 = ((fy1(1,:) ./ fy1(3,:)).^2 + (fy1(2,:) ./ fy1(3,:)).^2);
         distcorr1 = 1 + k1*r1 + k2 * r1.^2 + k3 * r1.^3;
         dfy1 = distcorr1 .* fy1;
         
-        r2 = ((fz1(1) / fz1(3))^2 + (fz1(2) / fz1(3))^2);
+        r2 = ((fz1(1,:) ./ fz1(3,:)).^2 + (fz1(2,:) ./ fz1(3,:)).^2);
         distcorr2 = 1 + k1*r2 + k2 * r2.^2 + k3 * r2.^3;
         dfz1 = distcorr2 .* fz1;
     else
@@ -370,15 +370,15 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     	jac_a_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*ccx*jac_cx tmp2*ccy*jac_cy tmp2*ccf*jac_f];
     
         if isfield(inde, 'k1')
-            jac_a_x(:,[inde.k1]) = tmp2*r1(ind_1);
+            jac_a_x(:,[inde.cov_k1]) = tmp2*[r1(ind_1);r1(ind_1);0];
         end
         
         if isfield(inde, 'k2')
-            jac_a_x(:,[inde.k2]) = tmp2*r1(ind_1)^2;
+            jac_a_x(:,[inde.cov_k2]) = tmp2*[r1(ind_1)^2;r1(ind_1)^2;0];
         end
         
         if isfield(inde, 'k3')
-            jac_a_x(:,[inde.k3]) = tmp2*r1(ind_1)^3;
+            jac_a_x(:,[inde.cov_k3]) = tmp2*[r1(ind_1)^3;r1(ind_1)^3;0];
         end
 	else
 		tmp2 = Ry*jac_f5(fy1(:,ind_1))*diag([Kinv(1,1),Kinv(2,2),0]);
@@ -434,15 +434,15 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     	jac_b_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*ccx*jac_cx tmp2*ccy*jac_cy tmp2*ccf*jac_f];
                                                    
         if isfield(inde, 'k1')
-            jac_b_x(:,[inde.k1]) = tmp2*r2(ind_1);
+            jac_b_x(:,[inde.cov_k1]) = tmp2*[r2(ind_1);r2(ind_1);0];
         end
         
         if isfield(inde, 'k2')
-            jac_b_x(:,[inde.k2]) = tmp2*r2(ind_1)^2;
+            jac_b_x(:,[inde.cov_k2]) = tmp2*[r2(ind_1)^2;r2(ind_1)^2;0];
         end
         
         if isfield(inde, 'k3')
-            jac_b_x(:,[inde.k3]) = tmp2*r2(ind_1)^3;
+            jac_b_x(:,[inde.cov_k3]) = tmp2*[r2(ind_1)^3;r2(ind_1)^3;0];
         end
         
     else

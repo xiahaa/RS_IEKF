@@ -64,4 +64,17 @@ for i = 3:5
     xlabel('t: (s)');
 	ylabel(ylbs{i-2});
 end
+
+figure
+for i = 12:14
+    sigma = sqrt(var_est(1:2:end,i));
+	v_low  = mean_est(1:2:end,i) - sigma;
+	v_high = mean_est(1:2:end,i) + sigma;
+	fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
+	hold on
+    plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
+%     title(name{i-2});
+    xlabel('t: (s)');
+end
+
 warning on;
