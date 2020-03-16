@@ -17,7 +17,7 @@ function para = config(varargin)
     elseif flt_type == 2
         para.flt = @ekf_epipolar_analytic;
     elseif flt_type == 3
-        para.flt = @InEKF_rs_calib_rep_exp;
+        para.flt = @InEKF_rs_calib_rep;
     else
         error('Wrong filter type!!!!');
     end
