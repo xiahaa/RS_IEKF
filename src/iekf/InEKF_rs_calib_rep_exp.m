@@ -2,10 +2,10 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
 %% this scipt runs InEKF for rolling shutter camera calibration.
     avg_freq = 1/mean(diff(framestamp));
     est_ts = 1/avg_freq;
-    para.ts = est_ts * 3/2;
-    para.cx = para.cx * 3/2;
-    para.cy = para.cy * 3/2;
-    para.f = para.f * 3/2;
+    para.ts = est_ts;
+    para.cx = para.cx;
+    para.cy = para.cy;
+    para.f = para.f;
 
     %% code section
     h = para.h;
@@ -34,7 +34,7 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     x_k_k = [0; 0; 0; para.td; 0; para.wd'; rcam(:)];
     p_k_k = eye(11); 
     p_k_k(1,1) = oc_sigma; p_k_k(2,2) = oc_sigma; 
-    p_k_k(3,3) = 1; p_k_k(4,4) = td_sigma; 
+    p_k_k(3,3) = 1^2; p_k_k(4,4) = td_sigma; 
     p_k_k(5,5) = f_sigma; 
     p_k_k(6,6) = bias_sigma; p_k_k(7,7) = bias_sigma; p_k_k(8,8) = bias_sigma; 
     p_k_k(9,9) = rcam_sigma; p_k_k(10,10) = rcam_sigma; p_k_k(11,11) = rcam_sigma; 
@@ -166,10 +166,10 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
                 inde = update_inde(inde, x_k_k, p_k_k);
                 
                 % log
-                ccx = -(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
-                ccy = -(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
-                ccf = -(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
-                ccc = -(para.ts*exp(X(inde.ts)))/((2*exp(X(inde.ts)) + 1)^2);
+                ccx = para.cx*dft(X(inde.cxy(1)));
+                ccy = para.cy*dft(X(inde.cxy(2)));
+                ccf = para.f*dft(X(inde.f));
+                ccc = para.ts*dft(X(inde.ts));
 
                 var_est(upid,:) = [diag(P(inde.cov_nongroup,inde.cov_nongroup))'];
                 var_est(upid,1) = ccx * var_est(upid,1) * ccx';
@@ -219,9 +219,13 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     disp(['mean runtime is ', num2str(mean(runtime(runtime ~= 0)))]);
 end
 
+function dy = dft(x)
+    dy = exp(x)/(exp(x) + 1) - exp(2*x)/(exp(x) + 1)^2;
+end
+
 function y = ft(x)
     fsig = @(x) (exp(x)/(exp(x)+1));
-    y = (1/(1+fsig(x)));
+    y = (0.5+fsig(x));
 end
 
 function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ftb, fz, fy, h, puv,para)
@@ -302,7 +306,7 @@ function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ft
 	Hf = zeros(hnum, 2);
     JRJt = zeros(hnum, hnum);
     delta = 0.01;
-    usehuber = 0;
+    usehuber = 1;
     for i = 1:hnum
         %% compute intermediate variables 
         ind_1 = i;
@@ -364,9 +368,9 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     %% jacobian
     jac_a_x = zeros(3,inde.cov_nongroup(end));
 	if isfield(inde, 'cxy')
-        ccx = -(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
-        ccy = -(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
-        ccf = -(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
+        ccx = para.cx*dft(X(inde.cxy(1)));
+        ccy = para.cy*dft(X(inde.cxy(2)));
+        ccf = para.f*dft(X(inde.f));
         
     	tmp2 = Ry*jac_f5(dfy1(:,ind_1));
         
@@ -410,8 +414,7 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     jac_a_uv(:,1:2) = [tmp2*jac_u tmp2*jac_v];
 
     v = fy(2,ind_1);
-    ccc = -(para.ts*v*exp(X(inde.ts)))/(h*(2*exp(X(inde.ts)) + 1)^2);
-    
+    ccc = para.ts*dft(X(inde.ts))*v/h;    
     jac_a_x(:,[inde.cov_ts, inde.cov_td]) = [tmp1*sy*ccc tmp1*sy];
     
     jac_a_x(:,inde.cov_group(iy*3-2:iy*3)) = jac_R0;
@@ -429,9 +432,9 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     
     jac_b_x = zeros(3,inde.cov_nongroup(end));
 	if isfield(inde, 'cxy')
-        ccx = -(para.cx*exp(X(inde.cxy(1))))/((2*exp(X(inde.cxy(1))) + 1)^2);
-        ccy = -(para.cy*exp(X(inde.cxy(2))))/((2*exp(X(inde.cxy(2))) + 1)^2);
-        ccf = -(para.f*exp(X(inde.f)))/((2*exp(X(inde.f)) + 1)^2);
+        ccx = para.cx*dft(X(inde.cxy(1)));
+        ccy = para.cy*dft(X(inde.cxy(2)));
+        ccf = para.f*dft(X(inde.f));
 	    tmp2 = Rz*jac_f5(dfz1(:,ind_1));
         
         jac_cx = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)^2/fz1(3,ind_1)-distcorr2(ind_1); ...
@@ -475,7 +478,7 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     jac_b_uv(:,1:2) = [tmp2*jac_u tmp2*jac_v];
     
     v = fz(2,ind_1);
-    ccc = -(para.ts*v*exp(X(inde.ts)))/(h*(2*exp(X(inde.ts)) + 1)^2);
+    ccc = para.ts*dft(X(inde.ts))*v/h;    
     jac_b_x(:,[inde.cov_ts, inde.cov_td]) = [tmp1*sz*ccc tmp1*sz];
     
     jac_b_x(:,inde.cov_group(iz*3-2:iz*3)) = jac_R0;
