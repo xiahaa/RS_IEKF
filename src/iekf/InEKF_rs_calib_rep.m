@@ -60,6 +60,7 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep(match_idx, match_x1, ma
     % group state
     inde.group_num = 1;
     inde.rot = 1:9; inde.cov_rot = 1:3;% latest index of rotation
+    inde.cxy = [];
     inde = update_inde(inde, x_k_k, p_k_k);
     
     R0 = eye(3);
