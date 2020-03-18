@@ -1,8 +1,13 @@
-function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx)
+function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx, varargin)
 %% this scipt runs InEKF for rolling shutter camera calibration.
+    if isempty(varargin)
+        fix_int = 0;
+    else
+        fix_int = 1;
+    end
+
     avg_freq = 1/mean(diff(framestamp));
-    est_ts = 1/avg_freq;
-    para.ts = est_ts;
+    para.ts = para.ts;
     para.cx = para.cx;
     para.cy = para.cy;
     para.f = para.f;
@@ -31,14 +36,22 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     
     % initilize the EKF
     rcam = expSO3(para.rcam);
-    x_k_k = [0; 0; 0; para.td; 0; para.wd'; rcam(:)];
-    p_k_k = eye(11); 
-    p_k_k(1,1) = oc_sigma; p_k_k(2,2) = oc_sigma; 
-    p_k_k(3,3) = 1^2; p_k_k(4,4) = td_sigma; 
-    p_k_k(5,5) = f_sigma; 
-    p_k_k(6,6) = bias_sigma; p_k_k(7,7) = bias_sigma; p_k_k(8,8) = bias_sigma; 
-    p_k_k(9,9) = rcam_sigma; p_k_k(10,10) = rcam_sigma; p_k_k(11,11) = rcam_sigma; 
-    
+    if fix_int == 0
+        x_k_k = [0; 0; 0; para.td; 0; para.wd'; rcam(:)];
+        p_k_k = eye(11); 
+        p_k_k(1,1) = oc_sigma; p_k_k(2,2) = oc_sigma; 
+        p_k_k(3,3) = 1^2; p_k_k(4,4) = td_sigma; 
+        p_k_k(5,5) = f_sigma; 
+        p_k_k(6,6) = bias_sigma; p_k_k(7,7) = bias_sigma; p_k_k(8,8) = bias_sigma; 
+        p_k_k(9,9) = rcam_sigma; p_k_k(10,10) = rcam_sigma; p_k_k(11,11) = rcam_sigma; 
+    else
+        x_k_k = [0; para.td; para.wd'; rcam(:)];
+        p_k_k = eye(8); 
+        p_k_k(1,1) = 1^2; p_k_k(2,2) = td_sigma; 
+        p_k_k(3,3) = bias_sigma; p_k_k(4,4) = bias_sigma; p_k_k(5,5) = bias_sigma; 
+        p_k_k(6,6) = rcam_sigma; p_k_k(7,7) = rcam_sigma; p_k_k(8,8) = rcam_sigma; 
+    end
+        
     if isfield(para, 'dist')
         x_k_k = [x_k_k; para.dist'];
         dist_sigma = 0.03^2;
@@ -48,6 +61,9 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     % group state
     inde.group_num = 1;
     inde.rot = 1:9; inde.cov_rot = 1:3;% latest index of rotation
+    if fix_int == 0
+        inde.cxy = [];
+    end
     inde = update_inde(inde, x_k_k, p_k_k);
     
     R0 = eye(3);
@@ -166,26 +182,38 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
                 inde = update_inde(inde, x_k_k, p_k_k);
                 
                 % log
-                ccx = para.cx*dft(X(inde.cxy(1)));
-                ccy = para.cy*dft(X(inde.cxy(2)));
-                ccf = para.f*dft(X(inde.f));
+                if isfield(inde, 'cxy')
+                    ccx = para.cx*dft(X(inde.cxy(1)));
+                    ccy = para.cy*dft(X(inde.cxy(2)));
+                    ccf = para.f*dft(X(inde.f));
+                end
                 ccc = para.ts*dft(X(inde.ts));
-
                 var_est(upid,:) = [diag(P(inde.cov_nongroup,inde.cov_nongroup))'];
-                var_est(upid,1) = ccx * var_est(upid,1) * ccx';
-                var_est(upid,2) = ccy * var_est(upid,2) * ccy';
-                var_est(upid,5) = ccf * var_est(upid,5) * ccf';
-                var_est(upid,3) = ccc * var_est(upid,3) * ccc';
-                
+                if isfield(inde, 'cxy')
+                    var_est(upid,1) = ccx * var_est(upid,1) * ccx';
+                    var_est(upid,2) = ccy * var_est(upid,2) * ccy';
+                    var_est(upid,5) = ccf * var_est(upid,5) * ccf';
+                    var_est(upid,3) = ccc * var_est(upid,3) * ccc';
+                else
+                    var_est(upid,1) = ccc * var_est(upid,1) * ccc';
+                end
                 x_k_display = [X([inde.nongroup(1):inde.rcam(1)-1]), logSO3(reshape(X(inde.rcam),3,3))', X([inde.rcam(end)+1:inde.nongroup(end)])];
-                x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
-                x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
-                x_k_display(5) = para.f * ft(X(inde.f));
-                x_k_display(3) = para.ts * ft(X(inde.ts));
+                if isfield(inde, 'cxy')
+                    x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
+                    x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
+                    x_k_display(5) = para.f * ft(X(inde.f));
+                    x_k_display(3) = para.ts * ft(X(inde.ts));
+                    fprintf('idx = %d, ts = %f, td = %f, ocw = %f, och = %f, f = %f bias = %f %f %f rcamx = %f %f %f \n',epipolar_num(1), ...
+                        x_k_display(3),x_k_display(4),x_k_display(1),x_k_display(2),x_k_display(5),x_k_display(6),x_k_display(7),x_k_display(8),...
+                        x_k_display(9), x_k_display(10), x_k_display(11));        
+                else
+                    x_k_display(1) = para.ts * ft(X(inde.ts));
+                    fprintf('idx = %d, ts = %f, td = %f, bias = %f %f %f rcamx = %f %f %f \n',epipolar_num(1), ...
+                        x_k_display(1),x_k_display(2),x_k_display(6),x_k_display(7),x_k_display(8),...
+                        x_k_display(9), x_k_display(10), x_k_display(11));        
+                end
                 mean_est(upid,:) = x_k_display;
-                fprintf('idx = %d, ts = %f, td = %f, ocw = %f, och = %f, f = %f bias = %f %f %f rcamx = %f %f %f \n',epipolar_num(1), ...
-                    x_k_display(3),x_k_display(4),x_k_display(1),x_k_display(2),x_k_display(5),x_k_display(6),x_k_display(7),x_k_display(8),...
-                    x_k_display(9), x_k_display(10), x_k_display(11));        
+
                 upid = upid + 1;
                 % state deduction will be done in next frame.
                 epipolar_num = [];
@@ -196,25 +224,42 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
         runtime(ind) = toc;
     end
     x_k_display = [X([inde.nongroup(1):inde.rcam(1)-1]), logSO3(reshape(X(inde.rcam),3,3))', X([inde.rcam(end)+1:inde.nongroup(end)])];
-    x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
-    x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
-    x_k_display(5) = para.f * ft(X(inde.f));
-    x_k_display(3) = para.ts * ft(X(inde.ts));
-    npara.ts = x_k_display(3);
-    npara.td = x_k_display(4);
-    npara.wd = [x_k_display(6) x_k_display(7) x_k_display(8)];
-    npara.f = x_k_display(5);
-    npara.cx = x_k_display(1);
-    npara.cy = x_k_display(2);
-    npara.rcam = [x_k_display(9); x_k_display(10); x_k_display(11)];
-    if length(x_k_display)>11
-        npara.k1 = x_k_display(12);
-    end
-    if length(x_k_display)>12
-        npara.k2 = x_k_display(13);
-    end
-    if length(x_k_display)>13
-        npara.k3 = x_k_display(14);
+    if isfield(inde, 'cxy')
+        x_k_display(1) = para.cx * ft(X(inde.cxy(1)));
+        x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
+        x_k_display(5) = para.f * ft(X(inde.f));
+        x_k_display(3) = para.ts * ft(X(inde.ts));
+        npara.ts = x_k_display(3);
+        npara.td = x_k_display(4);
+        npara.wd = [x_k_display(6) x_k_display(7) x_k_display(8)];
+        npara.f = x_k_display(5);
+        npara.cx = x_k_display(1);
+        npara.cy = x_k_display(2);
+        npara.rcam = [x_k_display(9); x_k_display(10); x_k_display(11)];
+        if length(x_k_display)>11
+            npara.k1 = x_k_display(12);
+        end
+        if length(x_k_display)>12
+            npara.k2 = x_k_display(13);
+        end
+        if length(x_k_display)>13
+            npara.k3 = x_k_display(14);
+        end
+    else
+        x_k_display(1) = para.ts * ft(X(inde.ts));
+        npara.ts = x_k_display(1);
+        npara.td = x_k_display(2);
+        npara.wd = [x_k_display(3) x_k_display(4) x_k_display(5)];
+        npara.rcam = [x_k_display(6); x_k_display(7); x_k_display(8)];
+        if length(x_k_display)>8
+            npara.k1 = x_k_display(9);
+        end
+        if length(x_k_display)>9
+            npara.k2 = x_k_display(10);
+        end
+        if length(x_k_display)>10
+            npara.k3 = x_k_display(11);
+        end
     end
     disp(['mean runtime is ', num2str(mean(runtime(runtime ~= 0)))]);
 end
@@ -280,15 +325,22 @@ function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ft
         
         r1 = ((fy1(1,:) ./ fy1(3,:)).^2 + (fy1(2,:) ./ fy1(3,:)).^2);
         distcorr1 = 1 + k1*r1 + k2 * r1.^2 + k3 * r1.^3;
-        dfy1 = distcorr1 .* fy1;
+        dfy1 = [distcorr1 .* fy1(1:2,:);fy1(3,:)];
         
         r2 = ((fz1(1,:) ./ fz1(3,:)).^2 + (fz1(2,:) ./ fz1(3,:)).^2);
         distcorr2 = 1 + k1*r2 + k2 * r2.^2 + k3 * r2.^3;
-        dfz1 = distcorr2 .* fz1;
+        dfz1 = [distcorr2 .* fz1(1:2,:);fz1(3,:)];
     else
 		K = [para.fx 0 para.cx;0 para.fy para.cy;0 0 1];Kinv = inv(K);
-    	fy1 = [reshape(fy, 2, length(fy)/2); ones(1, length(fy)/2)]; fy1 = Kinv * fy1;
-    	fz1 = [reshape(fz, 2, length(fz)/2); ones(1, length(fz)/2)]; fz1 = Kinv * fz1;
+    	fy1 = [reshape(fy, 2, length(fy)/2); ones(1, length(fy)/2)]; fy1 = Kinv*fy1;
+    	fz1 = [reshape(fz, 2, length(fz)/2); ones(1, length(fz)/2)]; fz1 = Kinv*fz1;
+        r1 = ((fy1(1,:) ./ fy1(3,:)).^2 + (fy1(2,:) ./ fy1(3,:)).^2);
+        distcorr1 = 1 + k1*r1 + k2 * r1.^2 + k3 * r1.^3;
+        dfy1 = [distcorr1 .* fy1(1:2,:);fy1(3,:)];
+        
+        r2 = ((fz1(1,:) ./ fz1(3,:)).^2 + (fz1(2,:) ./ fz1(3,:)).^2);
+        distcorr2 = 1 + k1*r2 + k2 * r2.^2 + k3 * r2.^3;
+        dfz1 = [distcorr2 .* fz1(1:2,:);fz1(3,:)];
 	end
     %% normalization to e
     nfy1 = dfy1 ./ vecnorm(dfy1);
@@ -374,12 +426,12 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
         
     	tmp2 = Ry*jac_f5(dfy1(:,ind_1));
         
-        jac_cx = [-(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)^2/fy1(3,ind_1)-distcorr1(ind_1); ...
-                  -(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/fy1(3,ind_1); ...
+        jac_cx = [-(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)^2/(fy1(3,ind_1)^2)-distcorr1(ind_1); ...
+                  -(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/(fy1(3,ind_1)^2); ...
                   0];
         
-        jac_cy = [-(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/fy1(3,ind_1); ...
-                  -(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(2,ind_1)^2/fy1(3,ind_1)-distcorr1(ind_1); ...
+        jac_cy = [-(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/(fy1(3,ind_1)^2); ...
+                  -(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(2,ind_1)^2/(fy1(3,ind_1)^2)-distcorr1(ind_1); ...
                   0];
               
         jac_f = [-(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*(fy1(1,ind_1)/fy1(3,ind_1)^3+fy1(2,ind_1)/fy1(3,ind_1)^3); ...
@@ -389,27 +441,47 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     	jac_a_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*ccx*jac_cx tmp2*ccy*jac_cy tmp2*ccf*jac_f];
     
         if isfield(inde, 'k1')
-            jac_a_x(:,[inde.cov_k1]) = tmp2*[r1(ind_1);r1(ind_1);0];
+            jac_a_x(:,[inde.cov_k1]) = tmp2*[r1(ind_1)*fy1(1,ind_1);r1(ind_1)*fy1(2,ind_1);0];
         end
         
         if isfield(inde, 'k2')
-            jac_a_x(:,[inde.cov_k2]) = tmp2*[r1(ind_1)^2;r1(ind_1)^2;0];
+            jac_a_x(:,[inde.cov_k2]) = tmp2*[r1(ind_1)^2*fy1(1,ind_1);r1(ind_1)^2*fy1(2,ind_1);0];
         end
         
         if isfield(inde, 'k3')
-            jac_a_x(:,[inde.cov_k3]) = tmp2*[r1(ind_1)^3;r1(ind_1)^3;0];
+            jac_a_x(:,[inde.cov_k3]) = tmp2*[r1(ind_1)^3*fy1(1,ind_1);r1(ind_1)^3*fy1(2,ind_1);0];
         end
-	else
-		tmp2 = Ry*jac_f5(fy1(:,ind_1))*diag([Kinv(1,1),Kinv(2,2),0]);
-    end
     
-    jac_u = [(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)^2/fy1(3,ind_1)+distcorr1(ind_1); ...
-              (2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/fy1(3,ind_1); ...
-              0];
+        jac_u = [(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)^2/(fy1(3,ind_1)^2)+distcorr1(ind_1); ...
+                  (2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/(fy1(3,ind_1)^2); ...
+                  0];
+
+        jac_v = [(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/(fy1(3,ind_1)^2); ...
+                 (2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(2,ind_1)^2/(fy1(3,ind_1)^2)+distcorr1(ind_1); ...
+                  0];
+	else
+    	tmp2 = Ry*jac_f5(dfy1(:,ind_1));
+        if isfield(inde, 'k1')
+            jac_a_x(:,[inde.cov_k1]) = tmp2*[r1(ind_1)*fy1(1,ind_1);r1(ind_1)*fy1(2,ind_1);0];
+        end
         
-    jac_v = [(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/fy1(3,ind_1); ...
-             (2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(2,ind_1)^2/fy1(3,ind_1)+distcorr1(ind_1); ...
-              0];
+        if isfield(inde, 'k2')
+            jac_a_x(:,[inde.cov_k2]) = tmp2*[r1(ind_1)^2*fy1(1,ind_1);r1(ind_1)^2*fy1(2,ind_1);0];
+        end
+        
+        if isfield(inde, 'k3')
+            jac_a_x(:,[inde.cov_k3]) = tmp2*[r1(ind_1)^3*fy1(1,ind_1);r1(ind_1)^3*fy1(2,ind_1);0];
+        end
+        f1 = para.fx;
+        f2 = para.fy;
+        jac_u = [(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)^2/(f1)+distcorr1(ind_1)/f1; ...
+                  (2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/(f1); ...
+                  0];
+
+        jac_v = [(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*fy1(2,ind_1)/(f2); ...
+                 (2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(2,ind_1)^2/(f2)+distcorr1(ind_1)/f2; ...
+                  0];
+    end
     
     jac_a_uv(:,1:2) = [tmp2*jac_u tmp2*jac_v];
 
@@ -437,12 +509,12 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
         ccf = para.f*dft(X(inde.f));
 	    tmp2 = Rz*jac_f5(dfz1(:,ind_1));
         
-        jac_cx = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)^2/fz1(3,ind_1)-distcorr2(ind_1); ...
-                  -(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/fz1(3,ind_1); ...
+        jac_cx = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)^2/(fz1(3,ind_1)^2)-distcorr2(ind_1); ...
+                  -(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/(fz1(3,ind_1)^2); ...
                   0];
         
-        jac_cy = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/fz1(3,ind_1); ...
-                  -(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(2,ind_1)^2/fz1(3,ind_1)-distcorr2(ind_1); ...
+        jac_cy = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/(fz1(3,ind_1)^2); ...
+                  -(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(2,ind_1)^2/(fz1(3,ind_1)^2)-distcorr2(ind_1); ...
                   0];
               
         jac_f = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*(fz1(1,ind_1)/fz1(3,ind_1)^3+fz1(2,ind_1)/fz1(3,ind_1)^3); ...
@@ -451,6 +523,27 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
         
     	jac_b_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*ccx*jac_cx tmp2*ccy*jac_cy tmp2*ccf*jac_f];
                                                    
+        if isfield(inde, 'k1')
+            jac_b_x(:,[inde.cov_k1]) = tmp2*[r2(ind_1)*fz1(1,ind_1);r2(ind_1)*fz1(2,ind_1);0];
+        end
+        
+        if isfield(inde, 'k2')
+            jac_b_x(:,[inde.cov_k2]) = tmp2*[r2(ind_1)^2*fz1(1,ind_1);r2(ind_1)^2*fz1(2,ind_1);0];
+        end
+        
+        if isfield(inde, 'k3')
+            jac_b_x(:,[inde.cov_k3]) = tmp2*[r2(ind_1)^3*fz1(1,ind_1);r2(ind_1)^3*fz1(2,ind_1);0];
+        end
+        
+        jac_u = [(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)^2/(fz1(3,ind_1)^2)+distcorr2(ind_1); ...
+                  (2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/(fz1(3,ind_1)^2); ...
+                  0];
+
+        jac_v = [(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/(fz1(3,ind_1)^2); ...
+                 (2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(2,ind_1)^2/(fz1(3,ind_1)^2)+distcorr2(ind_1); ...
+                  0];
+    else
+	    tmp2 = Rz*jac_f5(dfz1(:,ind_1));
         if isfield(inde, 'k1')
             jac_b_x(:,[inde.cov_k1]) = tmp2*[r2(ind_1);r2(ind_1);0];
         end
@@ -463,17 +556,16 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
             jac_b_x(:,[inde.cov_k3]) = tmp2*[r2(ind_1)^3;r2(ind_1)^3;0];
         end
         
-    else
-		tmp2 = Rz*jac_f5(fz1(:,ind_1))*diag([Kinv(1,1),Kinv(2,2),0]);
+        f1 = para.fx;
+        f2 = para.fy;
+        jac_u = [(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)^2/(f1)+distcorr2(ind_1)/f1; ...
+                  (2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/(f1); ...
+                  0];
+
+        jac_v = [(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/(f2); ...
+                 (2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(2,ind_1)^2/(f2)+distcorr2(ind_1)/f2; ...
+                  0];
     end
-    
-    jac_u = [(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)^2/fz1(3,ind_1)+distcorr2(ind_1); ...
-              (2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/fz1(3,ind_1); ...
-              0];
-        
-    jac_v = [(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*fz1(2,ind_1)/fz1(3,ind_1); ...
-             (2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(2,ind_1)^2/fz1(3,ind_1)+distcorr2(ind_1); ...
-              0];
     
     jac_b_uv(:,1:2) = [tmp2*jac_u tmp2*jac_v];
     

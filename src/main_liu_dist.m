@@ -18,48 +18,84 @@ warning off;
 frameend = match_idx(end) - 2;
 
 endidx = frameend-10;
-[mean_est, var_est, npara] = para.flt(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx);
 
+% try
+%     [mean_est1, var_est1, npara1] = ekf_epipolar(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx);
+% catch
+%     warning('ekf_epipolar fail!');
+% end
+% try
+%     [mean_est2, var_est2, npara2] = ekf_epipolar_analytic(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx);
+% catch
+%     warning('ekf_epipolar_analytic fail!');
+% end
+if isfield(para,'fix')
+    [mean_est, var_est, npara] = para.flt(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx,1);
+else
+    [mean_est, var_est, npara] = para.flt(match_idx, match_x1, match_x2, gyrostamp, gyrogap, anglev, framestamp, para, endidx);
+end
 % the calibrated parameters are saved in "npara"
 npara
 
 %% draw
 t_span = framestamp(1:size(mean_est,1));
 t_span = t_span(1:2:end);
-figure(1);
-k = 1;
-subplot(2,2,k);
-for i = 1:2
-	sigma = sqrt(var_est(1:2:end,i));
-	v_low  = mean_est(1:2:end,i) - sigma;
-	v_high = mean_est(1:2:end,i) + sigma;
-	fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
-	hold on
-	plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
-end
-if k == 1
-	legend({'1 sigma envelope','posterior'});
-	title('(c_u, c_v)');
-	xlabel('t: (s)');
-	ylabel('pixel');
-end
 
-name={'t_r', 't_d', 'f'};
-ylbs={'(s)','(s)','pixel'};
-for i = 3:5
-	k = k+1;
+if ~isfield(para,'fix')
+    figure(1);
+    k = 1;
     subplot(2,2,k);
-    sigma = sqrt(var_est(1:2:end,i));
-	v_low  = mean_est(1:2:end,i) - sigma;
-	v_high = mean_est(1:2:end,i) + sigma;
-	fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
-	hold on
-    plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
-    title(name{i-2});
-    xlabel('t: (s)');
-	ylabel(ylbs{i-2});
-end
+    for i = 1:2
+        sigma = sqrt(var_est(1:2:end,i));
+        v_low  = mean_est(1:2:end,i) - sigma;
+        v_high = mean_est(1:2:end,i) + sigma;
+        fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
+        hold on
+        plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
+    end
+    xlim([t_span(1) t_span(end)+0.5]);
+    if k == 1
+        legend({'1 sigma envelope','posterior'});
+        title('(c_u, c_v)');
+        xlabel('t: (s)');
+        ylabel('pixel');
+    end
 
+    name={'t_r', 't_d', 'f'};
+    ylbs={'(s)','(s)','pixel'};
+    for i = 3:5
+        k = k+1;
+        subplot(2,2,k);
+        sigma = sqrt(var_est(1:2:end,i));
+        v_low  = mean_est(1:2:end,i) - sigma;
+        v_high = mean_est(1:2:end,i) + sigma;
+        fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
+        hold on
+        plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
+        title(name{i-2});
+        xlabel('t: (s)');
+        ylabel(ylbs{i-2});
+        xlim([t_span(1) t_span(end)+0.5]);
+    end
+else
+    figure(1);
+    k = 1;
+    name={'t_r', 't_d'};
+    ylbs={'(s)','(s)'};
+    for i = 1:2
+        subplot(1,2,k);        k = k+1;
+        sigma = sqrt(var_est(1:2:end,i));
+        v_low  = mean_est(1:2:end,i) - sigma;
+        v_high = mean_est(1:2:end,i) + sigma;
+        fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
+        hold on
+        plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
+        title(name{i});
+        xlabel('t: (s)');
+        ylabel(ylbs{i});
+        xlim([t_span(1) t_span(end)+0.5]);
+    end
+end
 warning on;
 
 function [timestamp, timegap, anglev, firststamp] = readgyro_new( filepath )

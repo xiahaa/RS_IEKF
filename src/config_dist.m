@@ -60,6 +60,7 @@ function para = config_dist(varargin)
         paths = {'../data/rccar',...
                  '../data/rotation',...
                  '../data/walk'};
+             
         id = 3;
         td = [5.2, 2.8, 3.39];% GT = [5.208, 2.838, 3.3858]; init around GT with some errors.
 
@@ -79,6 +80,7 @@ function para = config_dist(varargin)
         para.dist = [0,0,0];% k1 k2 k3 only radial distortion
         para.sigma = 5*1e-3; % the noise variance of gyro readings
         para.pn = 1; % noise variance of feature detection
-        para.basepath = paths{id};
+        para.basepath = paths{id};        
+        para.fix = 1;
     end    
 end
