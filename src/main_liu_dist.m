@@ -95,6 +95,21 @@ else
         ylabel(ylbs{i});
         xlim([t_span(1) t_span(end)+0.5]);
     end
+    subplot(1,2,1);
+    plot([t_span(1), t_span(end)],[para.tr_th, para.tr_th],'k--','LineWidth',1.2);
+    legend({'1 sigma envelope','posterior','truth'});
+    subplot(1,2,2);
+    plot([t_span(1), t_span(end)],[para.td_th, para.td_th],'k--','LineWidth',1.2);
+    
+    figure(2);
+    Ric_th = para.ric_th;
+    for i = 1:size(mean_est,1)
+        Ric_est = expSO3(mean_est(i,6:8)');
+        errs(i) = norm(logSO3(Ric_th'*Ric_est));
+    end
+    plot(framestamp(1:size(mean_est,1)),errs,'Color','r','LineWidth',1.5);hold on;grid minor;
+    xlabel('t: (s)');
+    ylabel('$\|\log(\mathbf{R}_{th}^T\bar{\mathbf{R}})\|$','Interpreter','latex');
 end
 warning on;
 

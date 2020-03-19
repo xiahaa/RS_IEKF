@@ -63,7 +63,14 @@ function para = config_dist(varargin)
              
         id = 3;
         td = [5.2, 2.8, 3.39];% GT = [5.208, 2.838, 3.3858]; init around GT with some errors.
-
+        
+        ric_truth = {[-0.0712 0.9974 -0.0130; -0.9954 -0.0719 -0.0640; -0.0648 0.0084 0.9979], ...
+                     [ 0.0288 0.9996 -0.0011; -0.9996 0.0288 -0.0030;-0.0029 0.0012 1.0000], ...
+                     [ 0.0213 0.9998 0.0024; -0.9996 0.0212 0.0164; 0.0164 -0.0028 0.9999]};
+        
+        tr_truth = [ 0.0316734,  0.0316734,  0.0316734];
+        td_truth = [5.20867366868152E+00, 2.83818847389866E+00, 3.38581144830956E+00];
+                 
         para.td = td(id);%;%2.83;%1.175; % timestamp delay	
         % set the initial values of parameters
         para.ts = 0.033; % readout time of rolling shutter camera
@@ -76,11 +83,14 @@ function para = config_dist(varargin)
         para.h = 1080; % frame height (this is a fixed value)
         para.cx = 988.06311256; % principal point
         para.cy = 525.71056312; % principal point
-        para.rcam = [0;0;-1.54]; % relative orientation between camera and gyro
+        para.rcam = [0;0;-pi/2]; % relative orientation between camera and gyro
         para.dist = [0,0,0];% k1 k2 k3 only radial distortion
         para.sigma = 5*1e-3; % the noise variance of gyro readings
         para.pn = 1; % noise variance of feature detection
         para.basepath = paths{id};        
-        para.fix = 1;
+%         para.fix = 1;
+        para.ric_th = ric_truth{id};
+        para.tr_th = tr_truth(id);
+        para.td_th = td_truth(id);
     end    
 end

@@ -436,7 +436,7 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
               
         jac_f = [-(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(1,ind_1)*(fy1(1,ind_1)/fy1(3,ind_1)^3+fy1(2,ind_1)/fy1(3,ind_1)^3); ...
                   -(2*k1+4*k2*r1(ind_1)+6*k3*r1(ind_1)^2)*fy1(2,ind_1)*(fy1(1,ind_1)/fy1(3,ind_1)^3+fy1(2,ind_1)/fy1(3,ind_1)^3); ...
-                  1];
+                  1] + distcorr1(ind_1)*[0;0;1];
         
     	jac_a_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*ccx*jac_cx tmp2*ccy*jac_cy tmp2*ccf*jac_f];
     
@@ -519,8 +519,8 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
               
         jac_f = [-(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(1,ind_1)*(fz1(1,ind_1)/fz1(3,ind_1)^3+fz1(2,ind_1)/fz1(3,ind_1)^3); ...
                   -(2*k1+4*k2*r2(ind_1)+6*k3*r2(ind_1)^2)*fz1(2,ind_1)*(fz1(1,ind_1)/fz1(3,ind_1)^3+fz1(2,ind_1)/fz1(3,ind_1)^3); ...
-                  1];
-        
+                  1] + distcorr2(ind_1)*[0;0;1];
+  
     	jac_b_x(:,[inde.cov_cxy, inde.cov_f]) = [tmp2*ccx*jac_cx tmp2*ccy*jac_cy tmp2*ccf*jac_f];
                                                    
         if isfield(inde, 'k1')
