@@ -45,7 +45,8 @@ fig = figure('Units','inches',...
 
 ind = [1,2,3,4,5];
 
-tlname = {'f: pixel', 'c_u: pixel', 'c_v: pixel', 't_r: (s)', 't_d: (s)'};
+tlname = {'f: pixel', 'c\_u: pixel', 'c\_v: pixel', 't\_r: (s)', 't\_d: (s)'};
+set(groot,'defaultAxesTickLabelInterpreter','latex');  
 
 for i = 1:length(ind)
     ii = ind(i);
@@ -63,10 +64,10 @@ for i = 1:length(ind)
     set(gca,'FontSize', font_size);
     %xticklabels({round(linspace(0,nomial.f*2,num_bins))})
     %xlabel('f: pixel','FontSize', font_size, 'Interpreter', 'latex')
-    title(tlname{ii},'FontSize', font_size)
+    title(tlname{ii},'FontSize', font_size,'Interpreter','latex')
     
     if i == 1
-        lgnd = legend({'[13]','[14]','Proposed','Init'}, 'Location', 'NorthEast');
+        lgnd = legend({'[6]','[16]','Proposed','Init'}, 'Location', 'NorthEast','Interpreter','latex');
         set(lgnd,'FontSize', font_size-2);
     end
 end
@@ -80,8 +81,10 @@ bar(2,sum(failures2==0)/length(failures2),'EdgeColor', cmap(2,:), 'LineWidth', .
 bar(3,sum(failures3==0)/length(failures3),'EdgeColor', cmap(3,:), 'LineWidth', ...
     0.5, 'FaceColor', cmap(3,:), 'FaceAlpha', 0.6);
 xticks(1:3);
-xticklabels({'[13]','[14]','Proposed'});
-xtickangle(20);
-title('Success rate');
+xticklabels({'[6]','[16]','Proposed'});
+hAxes.TickLabelInterpreter = 'latex';
+xtickangle(-30);
+title('Success rate','Interpreter','latex');
+set(gca,'FontSize', font_size);
 grid minor;
 hold off;
