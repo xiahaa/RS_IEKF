@@ -33,8 +33,8 @@ t_span = framestamp(1:size(mean_est,1));
 t_span = t_span(1:2:end);
 figure(1);
 k = 1;
-subplot(2,2,k);
-for i = 1:2
+subplot(3,2,k);
+for i = 1:1
 	sigma = sqrt(var_est(1:2:end,i));
 	v_low  = mean_est(1:2:end,i) - sigma;
 	v_high = mean_est(1:2:end,i) + sigma;
@@ -43,38 +43,54 @@ for i = 1:2
 	plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
 end
 if k == 1
-	legend({'1 sigma envelope','posterior'});
-	title('(c_u, c_v)');
-	xlabel('t: (s)');
-	ylabel('pixel');
+	legend({'1 sigma envelope','posterior'},'Interpreter','latex');
+	title('c\_u','Interpreter','latex');
+	xlabel('t: (s)','Interpreter','latex');
+	ylabel('pixel','Interpreter','latex');
 end
 
-name={'t_r', 't_d', 'f'};
-ylbs={'(s)','(s)','pixel'};
-for i = 3:5
+name={'c\_v','t\_r', 't\_d', 'f'};
+ylbs={'pixel','(s)','(s)','pixel'};
+for i = 2:5
 	k = k+1;
-    subplot(2,2,k);
+    subplot(3,2,k);
     sigma = sqrt(var_est(1:2:end,i));
 	v_low  = mean_est(1:2:end,i) - sigma;
 	v_high = mean_est(1:2:end,i) + sigma;
 	fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
 	hold on
     plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
-    title(name{i-2});
-    xlabel('t: (s)');
-	ylabel(ylbs{i-2});
+    title(name{i-1},'Interpreter','latex');
+    xlabel('t: (s)','Interpreter','latex');
+	ylabel(ylbs{i-1},'Interpreter','latex');
 end
 
-figure
-for i = 12:14
+k = 6;
+for i = 6:8
+    subplot(3,2,k);
     sigma = sqrt(var_est(1:2:end,i));
 	v_low  = mean_est(1:2:end,i) - sigma;
 	v_high = mean_est(1:2:end,i) + sigma;
 	fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
 	hold on
     plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
-%     title(name{i-2});
-    xlabel('t: (s)');
+end
+title('bias: $w_b$','Interpreter','latex');
+xlabel('t: (s)');
+ylabel('');
+
+if size(var_est,2) > 11
+    figure
+    for i = 12:14
+        sigma = sqrt(var_est(1:2:end,i));
+        v_low  = mean_est(1:2:end,i) - sigma;
+        v_high = mean_est(1:2:end,i) + sigma;
+        fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
+        hold on
+        plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
+    %     title(name{i-2});
+        xlabel('t: (s)');
+    end
 end
 
 warning on;
