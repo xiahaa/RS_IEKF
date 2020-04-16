@@ -63,17 +63,17 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
     % initilize the EKF
     rcam = expSO3(para.rcam);
     if fix_int == 0
-        x_k_k = [0; 0; 0; para.td; 0; para.wd'; rcam(:)];
+        x_k_k = [0; 0; 0; 0; 0; para.wd'; rcam(:)];
         p_k_k = eye(11); 
         p_k_k(1,1) = oc_sigma; p_k_k(2,2) = oc_sigma; 
-        p_k_k(3,3) = 1^2; p_k_k(4,4) = td_sigma; 
+        p_k_k(3,3) = 1^2; p_k_k(4,4) = 1^2; 
         p_k_k(5,5) = f_sigma; 
         p_k_k(6,6) = bias_sigma; p_k_k(7,7) = bias_sigma; p_k_k(8,8) = bias_sigma; 
         p_k_k(9,9) = rcam_sigma; p_k_k(10,10) = rcam_sigma; p_k_k(11,11) = rcam_sigma; 
     else
-        x_k_k = [0; para.td; para.wd'; rcam(:)];
+        x_k_k = [0; 0; para.wd'; rcam(:)];
         p_k_k = eye(8); 
-        p_k_k(1,1) = 1^2; p_k_k(2,2) = td_sigma; 
+        p_k_k(1,1) = 1^2; p_k_k(2,2) = 1^2; 
         p_k_k(3,3) = bias_sigma; p_k_k(4,4) = bias_sigma; p_k_k(5,5) = bias_sigma; 
         p_k_k(6,6) = rcam_sigma; p_k_k(7,7) = rcam_sigma; p_k_k(8,8) = rcam_sigma; 
     end
@@ -214,14 +214,17 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
                     ccf = para.f*dft(X(inde.f));
                 end
                 ccc = para.ts*dft(X(inde.ts));
+                ccd = para.td*dft(X(inde.td));
                 var_est(upid,:) = [diag(P(inde.cov_nongroup,inde.cov_nongroup))'];
                 if isfield(inde, 'cxy')
                     var_est(upid,1) = ccx * var_est(upid,1) * ccx';
                     var_est(upid,2) = ccy * var_est(upid,2) * ccy';
                     var_est(upid,5) = ccf * var_est(upid,5) * ccf';
                     var_est(upid,3) = ccc * var_est(upid,3) * ccc';
+                    var_est(upid,4) = ccd * var_est(upid,4) * ccd';
                 else
                     var_est(upid,1) = ccc * var_est(upid,1) * ccc';
+                    var_est(upid,2) = ccd * var_est(upid,2) * ccd';
                 end
                 x_k_display = [X([inde.nongroup(1):inde.rcam(1)-1]), logSO3(reshape(X(inde.rcam),3,3))', X([inde.rcam(end)+1:inde.nongroup(end)])];
                 if isfield(inde, 'cxy')
@@ -229,11 +232,13 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
                     x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
                     x_k_display(5) = para.f * ft(X(inde.f));
                     x_k_display(3) = para.ts * ft(X(inde.ts));
+                    x_k_display(4) = para.td * ft(X(inde.td));
                     fprintf('idx = %d, ts = %f, td = %f, ocw = %f, och = %f, f = %f bias = %f %f %f rcamx = %f %f %f \n',epipolar_num(1), ...
                         x_k_display(3),x_k_display(4),x_k_display(1),x_k_display(2),x_k_display(5),x_k_display(6),x_k_display(7),x_k_display(8),...
                         x_k_display(9), x_k_display(10), x_k_display(11));        
                 else
                     x_k_display(1) = para.ts * ft(X(inde.ts));
+                    x_k_display(2) = para.td * ft(X(inde.td));
                     fprintf('idx = %d, ts = %f, td = %f, bias = %f %f %f rcamx = %f %f %f \n',epipolar_num(1), ...
                         x_k_display(1),x_k_display(2),x_k_display(3),x_k_display(4),x_k_display(5),...
                         x_k_display(6), x_k_display(7), x_k_display(8));        
@@ -255,6 +260,7 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
         x_k_display(2) = para.cy * ft(X(inde.cxy(2)));
         x_k_display(5) = para.f * ft(X(inde.f));
         x_k_display(3) = para.ts * ft(X(inde.ts));
+        x_k_display(4) = para.td * ft(X(inde.td));
         npara.ts = x_k_display(3);
         npara.td = x_k_display(4);
         npara.wd = [x_k_display(6) x_k_display(7) x_k_display(8)];
@@ -273,6 +279,7 @@ function [mean_est, var_est, npara] = InEKF_rs_calib_rep_exp(match_idx, match_x1
         end
     else
         x_k_display(1) = para.ts * ft(X(inde.ts));
+        x_k_display(2) = para.td * ft(X(inde.td));
         npara.ts = x_k_display(1);
         npara.td = x_k_display(2);
         npara.wd = [x_k_display(3) x_k_display(4) x_k_display(5)];
@@ -306,11 +313,11 @@ function [yhat, H, JRJt] = rep_info_meas_analytical(X, inde, localstamp, fta, ft
 	    ocx = para.cx * ft(x_nongroup(1));
 	    ocy = para.cy * ft(x_nongroup(2));
         tr = para.ts * ft(x_nongroup(3));
-	    td = x_nongroup(4);
+	    td = para.td * ft(x_nongroup(4));
 	    f = para.f * ft(x_nongroup(5));
     else
         tr = para.ts * ft(x_nongroup(1));
-    	td = x_nongroup(2);
+    	td = para.td * ft(x_nongroup(2));
     end
     
     if isfield(inde,'k1')
@@ -513,7 +520,8 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
 
     v = fy(2,ind_1);
     ccc = para.ts*dft(X(inde.ts))*v/h;    
-    jac_a_x(:,[inde.cov_ts, inde.cov_td]) = [tmp1*sy*ccc tmp1*sy];
+    ccd = para.td*dft(X(inde.td));    
+    jac_a_x(:,[inde.cov_ts, inde.cov_td]) = [tmp1*sy*ccc tmp1*sy*ccd];
     
     jac_a_x(:,inde.cov_group(iy*3-2:iy*3)) = jac_R0;
     jac_a_x(:,inde.cov_group(jy*3-2:jy*3)) = jac_R1;
@@ -596,8 +604,9 @@ function [a, b, jac_a_x, jac_a_uv, jac_b_x, jac_b_uv] = cons_a(X, inde, localsta
     jac_b_uv(:,1:2) = [tmp2*jac_u tmp2*jac_v];
     
     v = fz(2,ind_1);
-    ccc = para.ts*dft(X(inde.ts))*v/h;    
-    jac_b_x(:,[inde.cov_ts, inde.cov_td]) = [tmp1*sz*ccc tmp1*sz];
+    ccc = para.ts*dft(X(inde.ts))*v/h;   
+    ccd = para.td*dft(X(inde.td));  
+    jac_b_x(:,[inde.cov_ts, inde.cov_td]) = [tmp1*sz*ccc tmp1*sz*ccd];
     
     jac_b_x(:,inde.cov_group(iz*3-2:iz*3)) = jac_R0;
     jac_b_x(:,inde.cov_group(jz*3-2:jz*3)) = jac_R1;

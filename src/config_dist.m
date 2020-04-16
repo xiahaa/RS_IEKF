@@ -61,7 +61,7 @@ function para = config_dist(varargin)
                  '../data/rotation',...
                  '../data/walk'};
              
-        id = 3;
+        id = 1;
         td = [5.2, 2.8, 3.39];% GT = [5.208, 2.838, 3.3858]; init around GT with some errors.
         
         ric_truth = {[-0.0712 0.9974 -0.0130; -0.9954 -0.0719 -0.0640; -0.0648 0.0084 0.9979], ...
@@ -88,7 +88,7 @@ function para = config_dist(varargin)
         para.sigma = 5*1e-3; % the noise variance of gyro readings
         para.pn = 1; % noise variance of feature detection
         para.basepath = paths{id};        
-%         para.fix = 1;
+        para.fix = 1;
         para.ric_th = ric_truth{id};
         para.tr_th = tr_truth(id);
         para.td_th = td_truth(id);

@@ -44,8 +44,8 @@ t_span = t_span(1:2:end);
 if ~isfield(para,'fix')
     figure(1);
     k = 1;
-    subplot(2,2,k);
-    for i = 1:2
+    subplot(3,2,k);
+    for i = 1:1
         sigma = sqrt(var_est(1:2:end,i));
         v_low  = mean_est(1:2:end,i) - sigma;
         v_high = mean_est(1:2:end,i) + sigma;
@@ -55,33 +55,67 @@ if ~isfield(para,'fix')
     end
     xlim([t_span(1) t_span(end)+0.5]);
     if k == 1
-        legend({'1 sigma envelope','posterior'});
-        title('(c_u, c_v)');
-        xlabel('t: (s)');
-        ylabel('pixel');
+        legend({'1 sigma envelope','posterior'},'Interpreter','latex');
+	title('c\_u','Interpreter','latex');
+	xlabel('t: (s)','Interpreter','latex');
+	ylabel('pixel','Interpreter','latex');
     end
 
-    name={'t_r', 't_d', 'f'};
-    ylbs={'(s)','(s)','pixel'};
-    for i = 3:5
+    name={'c\_v','t\_r', 't\_d', 'f'};
+    ylbs={'pixel','(s)','(s)','pixel'};
+    for i = 2:5
         k = k+1;
-        subplot(2,2,k);
+        subplot(3,2,k);
         sigma = sqrt(var_est(1:2:end,i));
         v_low  = mean_est(1:2:end,i) - sigma;
         v_high = mean_est(1:2:end,i) + sigma;
         fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
         hold on
         plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
-        title(name{i-2});
-        xlabel('t: (s)');
-        ylabel(ylbs{i-2});
+        title(name{i-1},'Interpreter','latex');
+        xlabel('t: (s)','Interpreter','latex');
+        ylabel(ylbs{i-1},'Interpreter','latex');
         xlim([t_span(1) t_span(end)+0.5]);
     end
+    k = 6;
+    for i = 6:8
+    	subplot(3,2,k);
+	sigma = sqrt(var_est(1:2:end,i));
+	v_low  = mean_est(1:2:end,i) - sigma;
+	v_high = mean_est(1:2:end,i) + sigma;
+	fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
+	hold on
+	plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
+    end
+    title('bias: $w_b$','Interpreter','latex');
+    xlabel('t: (s)');
+    ylabel('');
+    
+    if size(var_est,2) > 11
+        figure
+        for i = 12:14
+            sigma = sqrt(var_est(1:2:end,i));
+            v_low  = mean_est(1:2:end,i) - sigma;
+            v_high = mean_est(1:2:end,i) + sigma;
+            fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
+            hold on
+            plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
+        %     title(name{i-2});
+            xlabel('t: (s)');
+        end
+    end
+    title('distortion: $k_1, k_2, k_3$','Interpreter','latex');
+    xlabel('t: (s)');
+    ylabel('');
 else
     figure(1);
     k = 1;
     name={'t_r', 't_d'};
     ylbs={'(s)','(s)'};
+%     drawid = t_span > para.td;
+%     t_span = t_span(drawid);
+%     var_est = var_est(drawid,:);
+%     mean_est = mean_est(drawid,:);
     for i = 1:2
         subplot(1,2,k);        k = k+1;
         sigma = sqrt(var_est(1:2:end,i));
@@ -108,7 +142,7 @@ else
         errs(i) = norm(logSO3(Ric_th'*Ric_est));
     end
     plot(framestamp(1:size(mean_est,1)),errs,'Color','r','LineWidth',1.5);hold on;grid minor;
-    xlabel('t: (s)');
+    xlabel('t: (s)','Interpreter','latex');
     ylabel('$\|\log(\mathbf{R}_{th}^T\bar{\mathbf{R}})\|$','Interpreter','latex');
 end
 warning on;
