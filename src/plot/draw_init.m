@@ -45,8 +45,7 @@ fig = figure('Units','inches',...
 
 ind = [1,2,3,4,5];
 
-tlname = {'f: pixel', 'c_u: pixel', 'c_v: pixel', 't_r: (s)', 't_d: (s)'};
-
+tlname = {'$f: \mathrm{pixel}$', '$c_u: \mathrm{pixel}$', '$c_v: \mathrm{pixel}$', '$t_r: \mathrm{(s)}$', '$t_d: \mathrm{(s)}$'};
 for i = 1:length(ind)
     ii = ind(i);
     subaxis(3,2,i, 'Margin', subplot_margin, 'Spacing', subplot_spacing);
@@ -61,12 +60,13 @@ for i = 1:length(ind)
     hold off;
     grid minor
     set(gca,'FontSize', font_size);
+    set(gca,'TickLabelInterpreter','latex')
     %xticklabels({round(linspace(0,nomial.f*2,num_bins))})
     %xlabel('f: pixel','FontSize', font_size, 'Interpreter', 'latex')
-    title(tlname{ii},'FontSize', font_size)
+    title(tlname{ii},'FontSize', font_size, 'Interpreter', 'latex')
     
     if i == 1
-        lgnd = legend({'[13]','[14]','Proposed','Init'}, 'Location', 'NorthEast');
+        lgnd = legend({'[6]','[14]','Proposed','Init'}, 'Location', 'NorthEast', 'Interpreter', 'latex');
         set(lgnd,'FontSize', font_size-2);
     end
 end
@@ -80,8 +80,10 @@ bar(2,sum(failures2==0)/length(failures2),'EdgeColor', cmap(2,:), 'LineWidth', .
 bar(3,sum(failures3==0)/length(failures3),'EdgeColor', cmap(3,:), 'LineWidth', ...
     0.5, 'FaceColor', cmap(3,:), 'FaceAlpha', 0.6);
 xticks(1:3);
-xticklabels({'[13]','[14]','Proposed'});
+xticklabels({'[6]','[14]','Proposed'});
 xtickangle(20);
-title('Success rate');
+title('Success rate', 'Interpreter', 'latex');
+set(gca,'TickLabelInterpreter','latex')
 grid minor;
+
 hold off;

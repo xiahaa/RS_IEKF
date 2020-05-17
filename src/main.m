@@ -43,13 +43,15 @@ for i = 1:2
 	plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
 end
 if k == 1
-	legend({'1 sigma envelope','posterior'});
-	title('(c_u, c_v)');
-	xlabel('t: (s)');
-	ylabel('pixel');
+	%legend({'1 sigma envelope','posterior'},'Interpreter','latex');
+	title('$(c_u, c_v)$','Interpreter','latex');
+	xlabel('t: (s)','Interpreter','latex');
+	ylabel('pixel','Interpreter','latex');
+    set(gca,'TickLabelInterpreter','latex')
 end
+set(gca,'TickLabelInterpreter','latex')
 
-name={'t_r', 't_d', 'f'};
+name={'$t_r$', '$t_d$', '$f$'};
 ylbs={'(s)','(s)','pixel'};
 for i = 3:5
 	k = k+1;
@@ -60,8 +62,12 @@ for i = 3:5
 	fill([t_span;t_span(end:-1:1)],[v_low;v_high(end:-1:1)],[0 116 186]/255,'facealpha',.3);
 	hold on
     plot(t_span,mean_est(1:2:end,i),'Color','r','LineWidth',1.5);hold on;grid on;
-    title(name{i-2});
-    xlabel('t: (s)');
-	ylabel(ylbs{i-2});
+    title(name{i-2},'Interpreter','latex');
+    xlabel('t: (s)','Interpreter','latex');
+	ylabel(ylbs{i-2},'Interpreter','latex');
+    set(gca,'TickLabelInterpreter','latex');
+    if k == 2
+        legend({'1 sigma envelope','posterior'},'Interpreter','latex');
+    end
 end
 warning on;
