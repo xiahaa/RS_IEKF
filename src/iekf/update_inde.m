@@ -1,4 +1,4 @@
-function inde = update_inde(inde, x_k_k, p_k_k)
+function inde = update_inde(inde, x_k_k, p_k_k,varargin)
 %FUNCTION_NAME - update index.
 %
 % Syntax:  inde = update_inde(inde, x_k_k, p_k_k)
@@ -17,8 +17,21 @@ function inde = update_inde(inde, x_k_k, p_k_k)
 % email: xiahaa@space.dtu.dk
 % Jan 2020; Last revision: 31-Jan-2020
 %------------- BEGIN CODE --------------
-    inde.group = 1:9*inde.group_num;
-    inde.cov_group = 1:3*inde.group_num;
+    add_pos_vel = 0;
+    if ~isempty(varargin)
+        add_pos_vel = varargin{1};
+    end
+    
+    if add_pos_vel == 0
+        inde.group = 1:9*inde.group_num;
+        inde.cov_group = 1:3*inde.group_num;
+    else
+        inde.group = 1:15*inde.group_num;
+        inde.cov_group = 1:9*inde.group_num;
+    end
+
+%     inde.group = 1:9*inde.group_num;
+%     inde.cov_group = 1:3*inde.group_num;
     
     inde.nongroup = (inde.group(end)+1):(inde.group(end)+length(x_k_k));
     if isfield(inde, 'cxy')
