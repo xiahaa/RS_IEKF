@@ -61,7 +61,7 @@ function para = config_dist(varargin)
                  '../data/rotation',...
                  '../data/walk'};
              
-        id = 2;
+        id = 1;
         td = [5.2, 2.8, 3.39];% GT = [5.208, 2.838, 3.3858]; init around GT with some errors.
         
         ric_truth = {[-0.0712 0.9974 -0.0130; -0.9954 -0.0719 -0.0640; -0.0648 0.0084 0.9979], ...
@@ -73,7 +73,7 @@ function para = config_dist(varargin)
                  
         para.td = td(id);%;%2.83;%1.175; % timestamp delay	
         % set the initial values of parameters
-        para.ts = 0.033*0.95; % readout time of rolling shutter camera
+        para.ts = 0.033; % readout time of rolling shutter camera
         para.wd = [0 0 0]; % gyroscope bias
         para.fx = 853.12703455; % camera focal length
         para.fy = 873.54956631; % camera focal length
@@ -85,8 +85,8 @@ function para = config_dist(varargin)
         para.cy = 525.71056312; % principal point
         para.rcam = [0;0;-pi/2]; % relative orientation between camera and gyro
         para.dist = [0,0,0];% k1 k2 k3 only radial distortion
-        para.sigma = 1*1e-2; % the noise variance of gyro readings
-        para.pn = 1e-1; % noise variance of feature detection
+        para.sigma = 5*1e-3; % the noise variance of gyro readings
+        para.pn = 1; % noise variance of feature detection
         para.basepath = paths{id};        
         para.fix = 1;
         para.ric_th = ric_truth{id};
