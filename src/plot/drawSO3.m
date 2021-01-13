@@ -22,10 +22,10 @@ hold on;
 xlim([-1.5*AxisLength, 1.5*AxisLength])
 axis equal;
 grid minor;
-title('$\mathbf{R}_{I}^{C}$','Interpreter','latex');
-Xlabel = 'X';
-Ylabel = 'Y';
-Zlabel = 'Z';
+title(' Calibration result: {\bf R}_{\rm B}^{\rm C}');
+Xlabel = 'x';
+Ylabel = 'y';
+Zlabel = 'z';
 xlabel(Xlabel,'Interpreter','latex');
 ylabel(Ylabel,'Interpreter','latex');
 zlabel(Zlabel,'Interpreter','latex');
@@ -89,5 +89,5 @@ end
 % quivZhandle = quiver3(ox, ox, oz, uz, vz, wz,  'b', 'ShowArrowHead', ShowArrowHeadStr, 'MaxHeadSize', 0.999999, 'AutoScale', 'off','LineWidth',1);
 view(View(1, :));
 if(ShowLegend)
-    legend([quivXhandle{1},quivXhandle{2},quivXhandle{3}],{'[6]','[16]','Proposed'},'Interpreter','latex');
+    legend([quivXhandle{1},quivXhandle{2},quivXhandle{3}],{'Jia13','Jia14','Proposed'},'Interpreter','latex','Location','best');
 end
