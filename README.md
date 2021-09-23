@@ -72,4 +72,5 @@ if you use the re-implemented version `ekf_epipolar_analytic.m`, please cite the
 
 if you use the dataset in the `data` folder, please cite the original work.
 
-if you use other files, please cite this work (format release later). 
+if you use other files, please cite this work:
+> Hu, X., Olesen, D. and Knudsen, P., 2020, October. Multistate Constrained Invariant Kalman Filter For Rolling Shutter Camera And Imu Calibration. In 2020 IEEE International Conference on Image Processing (ICIP) (pp. 56-60). IEEE.
